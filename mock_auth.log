@@ -1,0 +1,4 @@
+Apr 11 15:53:50 myvps sshd[834901]: Failed password for root from 192.168.1.100 port 1042 ssh2
+Apr 11 15:53:51 myvps sshd[834901]: Failed password for root from 192.168.1.100 port 1042 ssh2
+Apr 11 15:53:52 myvps sshd[834901]: Failed password for root from 192.168.1.100 port 1042 ssh2
+Apr 11 15:53:55 myvps sshd[834901]: Accepted password for root from 192.168.1.100 port 1042 ssh2

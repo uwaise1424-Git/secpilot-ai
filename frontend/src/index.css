@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+body {
+  background-color: #0f172a; /* Dark background for our SOC */
+  color: #e2e8f0;
+}
