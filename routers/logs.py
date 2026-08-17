@@ -1,26 +1,71 @@
-from fastapi import APIRouter, UploadFile, File
+from fastapi import APIRouter, UploadFile, File, Depends
+from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
+from sqlalchemy.orm import Session
+import json
+
 from services.parser import parse_auth_log
 from services.ai_engine import analyze_threats_with_ai
-from models.schemas import UploadResponse
+from database import get_db
+import db_models
 
 router = APIRouter()
 
-@router.post("/upload", response_model=UploadResponse)
-async def upload_log(file: UploadFile = File(...)):
-    # Read and decode the uploaded file
-    content = await file.read()
-    decoded_content = content.decode("utf-8")
+# Changed from 'async def' to 'def' so FastAPI safely threads the heavy database/AI workload
+@router.post("/upload")
+def upload_log(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    print("\n--- NEW UPLOAD STARTED ---")
+    print("DEBUG 1: Endpoint triggered.")
     
-    # Step 1: Parse the raw logs
-    parsed_logs = parse_auth_log(decoded_content)
+    # 1. Read the uploaded log file synchronously using file.file.read()
+    content = file.file.read()
+    log_data = content.decode("utf-8")
+    print("DEBUG 2: File read successfully.")
     
-    # Step 2: Send parsed logs to AI for analysis
-    ai_report = analyze_threats_with_ai(parsed_logs)
+    # 2. Parse the raw text into structured data
+    parsed_logs = parse_auth_log(log_data)
+    print("DEBUG 3: Logs parsed.")
     
-    # Step 3: Return the complete package to the user/dashboard
-    return UploadResponse(
-        message="Log file processed and analyzed successfully, bruh!",
+    # 3. Send the parsed logs to Groq/Llama3 for analysis
+    ai_response = analyze_threats_with_ai(parsed_logs)
+    print("DEBUG 4: AI response received.")
+    
+    # 4. Extract data from the ThreatAnalysis model
+    if hasattr(ai_response, "model_dump"):
+        ai_report = ai_response.model_dump()
+    elif hasattr(ai_response, "dict"):
+        ai_report = ai_response.dict()
+    elif isinstance(ai_response, str):
+        ai_report = json.loads(ai_response)
+    else:
+        ai_report = ai_response
+    print("DEBUG 5: Data cleanly structured.")
+    
+    # 5. Save the report to our SQLite Database
+    new_incident = db_models.Incident(
         filename=file.filename,
-        total_logs_parsed=len(parsed_logs),
-        ai_analysis=ai_report
+        incident_title=ai_report.get("incident_title", "Unknown Threat"),
+        severity=ai_report.get("severity", "UNKNOWN"),
+        mitre_attack_technique=ai_report.get("mitre_attack_technique", "N/A"),
+        explanation=ai_report.get("explanation", "No explanation provided."),
+        remediation_steps=ai_report.get("remediation_steps", "No remediation steps provided.")
     )
+    
+    db.add(new_incident)
+    db.commit()
+    db.refresh(new_incident)
+    print("DEBUG 6: Saved permanently to Database.")
+    
+    # 6. Return the report explicitly formatted
+    response_data = {
+        "filename": file.filename,
+        "status": "Analyzed and Saved to Database",
+        "ai_analysis": ai_report
+    }
+    print("DEBUG 7: Sending payload back to React UI.\n")
+    return JSONResponse(content=jsonable_encoder(response_data))
+
+@router.get("/history")
+def get_incident_history(db: Session = Depends(get_db)):
+    past_incidents = db.query(db_models.Incident).all()
+    return {"status": "success", "total": len(past_incidents), "data": past_incidents}
