@@ -11,26 +11,23 @@ import db_models
 
 router = APIRouter()
 
-# Changed from 'async def' to 'def' so FastAPI safely threads the heavy database/AI workload
+# Changed from 'async def' to 'def' so FastAPI safely threads the heavy workload
 @router.post("/upload")
 def upload_log(file: UploadFile = File(...), db: Session = Depends(get_db)):
     print("\n--- NEW UPLOAD STARTED ---")
     print("DEBUG 1: Endpoint triggered.")
     
-    # 1. Read the uploaded log file synchronously using file.file.read()
+    # 1. Read the uploaded log file synchronously
     content = file.file.read()
     log_data = content.decode("utf-8")
     print("DEBUG 2: File read successfully.")
     
-    # 2. Parse the raw text into structured data
-    parsed_logs = parse_auth_log(log_data)
-    print("DEBUG 3: Logs parsed.")
+    # 2. Send the RAW logs directly to Groq/Llama3 for universal analysis
+    # FIX: We are now passing 'log_data' instead of the old 'parsed_logs'
+    ai_response = analyze_threats_with_ai(log_data)
+    print("DEBUG 3: AI response received.")
     
-    # 3. Send the parsed logs to Groq/Llama3 for analysis
-    ai_response = analyze_threats_with_ai(parsed_logs)
-    print("DEBUG 4: AI response received.")
-    
-    # 4. Extract data from the ThreatAnalysis model
+    # 3. Extract data from the AI's response
     if hasattr(ai_response, "model_dump"):
         ai_report = ai_response.model_dump()
     elif hasattr(ai_response, "dict"):
@@ -39,9 +36,9 @@ def upload_log(file: UploadFile = File(...), db: Session = Depends(get_db)):
         ai_report = json.loads(ai_response)
     else:
         ai_report = ai_response
-    print("DEBUG 5: Data cleanly structured.")
+    print("DEBUG 4: Data cleanly structured.")
     
-    # 5. Save the report to our SQLite Database
+    # 4. Save the report to our SQLite Database
     new_incident = db_models.Incident(
         filename=file.filename,
         incident_title=ai_report.get("incident_title", "Unknown Threat"),
@@ -54,15 +51,15 @@ def upload_log(file: UploadFile = File(...), db: Session = Depends(get_db)):
     db.add(new_incident)
     db.commit()
     db.refresh(new_incident)
-    print("DEBUG 6: Saved permanently to Database.")
+    print("DEBUG 5: Saved permanently to Database.")
     
-    # 6. Return the report explicitly formatted
+    # 5. Return the report explicitly formatted
     response_data = {
         "filename": file.filename,
         "status": "Analyzed and Saved to Database",
         "ai_analysis": ai_report
     }
-    print("DEBUG 7: Sending payload back to React UI.\n")
+    print("DEBUG 6: Sending payload back to React UI.\n")
     return JSONResponse(content=jsonable_encoder(response_data))
 
 @router.get("/history")

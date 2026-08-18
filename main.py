@@ -9,14 +9,11 @@ db_models.Base.metadata.create_all(bind=engine) # <-- Updated name here
 
 app = FastAPI(title="AI SOC Analyst", version="1.0")
 
-# Security Rule: Allow local React ONLY for now
+# Security Rule: Allow ALL for local development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173"
-    ], 
-    allow_credentials=True,
+    allow_origins=["*"], 
+    allow_credentials=False, # This MUST be False when origins is "*"
     allow_methods=["*"], 
     allow_headers=["*"],
 )
