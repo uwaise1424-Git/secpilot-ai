@@ -8,10 +8,10 @@ function App() {
   const [history, setHistory] = useState([])
   const [selectedIncident, setSelectedIncident] = useState(null);
 
-  // Hardcoded the backend URL directly here!
+  // FIXED: Pointing to your live Render backend for history
   const fetchHistory = async () => {
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/logs/history");
+      const response = await fetch("https://secpilot-ai-r2ff.onrender.com/api/logs/history");
       const data = await response.json();
       if (data.status === "success") {
         setHistory(data.data.reverse());
@@ -36,8 +36,8 @@ function App() {
     formData.append("file", file);
 
     try {
-      // Hardcoded the backend URL directly here!
-      const response = await fetch("https://secpilot-ai-r2ff.onrender.com", {
+      // FIXED: Pointing to your live Render backend with the correct upload endpoint
+      const response = await fetch("https://secpilot-ai-r2ff.onrender.com/api/logs/upload", {
         method: "POST",
         body: formData,
       });
@@ -200,4 +200,4 @@ function App() {
   )
 }
 
-export default App 
+export default App
