@@ -37,7 +37,7 @@ function App() {
 
     try {
       // Hardcoded the backend URL directly here!
-      const response = await fetch("http://127.0.0.1:8000/api/logs/upload", {
+      const response = await fetch("https://secpilot-ai-r2ff.onrender.com", {
         method: "POST",
         body: formData,
       });
@@ -200,4 +200,4 @@ function App() {
   )
 }
 
-export default App
+export default App 
