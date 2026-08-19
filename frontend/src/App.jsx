@@ -6,6 +6,7 @@ function App() {
   const [report, setReport] = useState(null)
   const [loading, setLoading] = useState(false)
   const [history, setHistory] = useState([])
+  const [selectedIncident, setSelectedIncident] = useState(null);
 
   // Hardcoded the backend URL directly here!
   const fetchHistory = async () => {
@@ -122,7 +123,11 @@ function App() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {history.map((incident) => (
-              <div key={incident.id} className="bg-gray-800 p-5 rounded-xl border border-gray-700 shadow-md flex flex-col justify-between hover:border-gray-500 transition-colors">
+              <div 
+                key={incident.id} 
+                className="bg-gray-800 p-5 rounded-xl border border-gray-700 shadow-md flex flex-col justify-between hover:border-gray-400 hover:bg-gray-700 transition-all cursor-pointer transform hover:-translate-y-1"
+                onClick={() => setSelectedIncident(incident)}
+              >
                 <div>
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="text-lg font-bold text-red-400 leading-tight">{incident.incident_title}</h3>
@@ -143,6 +148,54 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* --- INCIDENT MODAL POPUP --- */}
+      {selectedIncident && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-50 transition-opacity">
+          <div className="bg-gray-800 border border-gray-600 rounded-xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl text-white">
+            <div className="flex justify-between items-start mb-4 border-b border-gray-700 pb-4">
+              <h2 className="text-2xl font-bold text-red-500">
+                {selectedIncident.incident_title}
+              </h2>
+              <span className={`text-sm font-bold px-3 py-1 rounded-full ${
+                selectedIncident.severity === 'CRITICAL' || selectedIncident.severity === 'HIGH' ? 'bg-red-600 text-white' : 'bg-yellow-600 text-white'
+              }`}>
+                {selectedIncident.severity}
+              </span>
+            </div>
+            
+            <div className="mb-6 bg-gray-900 p-4 rounded-lg font-mono text-sm border border-gray-700">
+              <span className="text-gray-400 font-bold block mb-1">MITRE Technique:</span> 
+              <span className="text-blue-400">{selectedIncident.mitre_attack_technique}</span> 
+              <br/><br/>
+              <span className="text-gray-400 font-bold block mb-1">Log File:</span> 
+              <span className="text-gray-300">{selectedIncident.filename}</span>
+            </div>
+            
+            <div className="mb-6">
+              <h3 className="font-bold text-lg text-gray-300 uppercase tracking-wider mb-2">In-Depth Analysis</h3>
+              <p className="whitespace-pre-wrap text-gray-300 leading-relaxed bg-gray-900 p-4 rounded-lg border border-gray-700">
+                {selectedIncident.explanation}
+              </p>
+            </div>
+            
+            <div className="mb-6 border-l-4 border-l-green-500 pl-4 bg-gray-900 p-4 rounded-lg border border-gray-700">
+              <h3 className="font-bold text-lg text-gray-300 uppercase tracking-wider mb-2">Remediation Steps</h3>
+              <p className="whitespace-pre-wrap text-green-400 leading-relaxed font-semibold">
+                {selectedIncident.remediation_steps}
+              </p>
+            </div>
+            
+            <button 
+              className="mt-6 bg-gray-700 text-white px-6 py-3 rounded-full font-bold hover:bg-red-600 w-full transition-colors border border-gray-500 shadow-lg"
+              onClick={() => setSelectedIncident(null)}
+            >
+              Close Detailed Report
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

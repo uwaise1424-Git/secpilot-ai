@@ -23,19 +23,36 @@ def upload_log(file: UploadFile = File(...), db: Session = Depends(get_db)):
     print("DEBUG 2: File read successfully.")
     
     # 2. Send the RAW logs directly to Groq/Llama3 for universal analysis
-    # FIX: We are now passing 'log_data' instead of the old 'parsed_logs'
     ai_response = analyze_threats_with_ai(log_data)
     print("DEBUG 3: AI response received.")
     
-    # 3. Extract data from the AI's response
-    if hasattr(ai_response, "model_dump"):
-        ai_report = ai_response.model_dump()
-    elif hasattr(ai_response, "dict"):
-        ai_report = ai_response.dict()
-    elif isinstance(ai_response, str):
-        ai_report = json.loads(ai_response)
-    else:
-        ai_report = ai_response
+    # 3. Extract data from the AI's response safely
+    try:
+        # Check if the AI returned a completely blank string
+        if not ai_response or str(ai_response).strip() == "":
+            raise ValueError("The AI API returned an empty response.")
+        
+        # Safely parse the response based on its type
+        if hasattr(ai_response, "model_dump"):
+            ai_report = ai_response.model_dump()
+        elif hasattr(ai_response, "dict"):
+            ai_report = ai_response.dict()
+        elif isinstance(ai_response, str):
+            ai_report = json.loads(ai_response)
+        else:
+            ai_report = json.loads(str(ai_response))
+            
+    except Exception as e:
+        print(f"Backend Parsing Error in logs.py: {e}")
+        # Fallback data so the database save succeeds and the server never crashes
+        ai_report = {
+            "incident_title": "API Filter Error",
+            "severity": "UNKNOWN",
+            "mitre_attack_technique": "N/A",
+            "explanation": "The AI API returned an empty or invalid response. This usually happens when the API provider's strict security filters block the raw attack payload found in the log.",
+            "remediation_steps": "The app is secure, but the AI refused to read this specific payload. Try uploading a different log file."
+        }
+        
     print("DEBUG 4: Data cleanly structured.")
     
     # 4. Save the report to our SQLite Database

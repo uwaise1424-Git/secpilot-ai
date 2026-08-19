@@ -10,19 +10,19 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 def analyze_threats_with_ai(log_data):
     system_prompt = """
     You are an expert AI Security Operations Center (SOC) Analyst. 
-    You will receive raw system logs. They could be Linux Auth logs, Nginx Web Server logs, or Network Firewall logs.
+    Analyze the provided raw system logs for security threats. Map the attack to a specific MITRE ATT&CK technique.
     
-    1. Identify the log type and analyze it for security threats.
-    2. Map the attack to a specific MITRE ATT&CK technique.
-    3. Return ONLY a pure JSON object. Do not include markdown formatting or backticks.
+    CRITICAL JSON RULES:
+    1. Return your analysis strictly as a JSON object.
+    2. NEVER use double quotes (") or backslashes (\) inside your explanation or remediation text. Use single quotes (') instead.
+    3. ABSOLUTELY DO NOT copy/paste raw log payloads. Summarize the attack in your own words.
     
-    Strict JSON Format required:
     {
       "incident_title": "Short title of the attack",
       "severity": "LOW, MEDIUM, HIGH, or CRITICAL",
       "mitre_attack_technique": "TXXXX - Name",
-      "explanation": "1-2 sentences explaining what the attacker is doing.",
-      "remediation_steps": "1-2 sentences on how to stop it."
+      "explanation": "Provide a deep, comprehensive technical analysis using ONLY single quotes.",
+      "remediation_steps": "Provide a highly detailed, step-by-step incident response plan for a sysadmin."
     }
     """
 
@@ -33,19 +33,29 @@ def analyze_threats_with_ai(log_data):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"Analyze these raw logs:\n{log_data}"}
             ],
-            temperature=0.2,
-            response_format={"type": "json_object"}
+            temperature=0.2
         )
         
-        return response.choices[0].message.content
+        raw_text = response.choices[0].message.content
+        
+        # 🚨 THE SMART EXTRACTOR
+        start_idx = raw_text.find('{')
+        end_idx = raw_text.rfind('}')
+        
+        if start_idx != -1 and end_idx != -1:
+            cleaned_text = raw_text[start_idx:end_idx+1]
+        else:
+            cleaned_text = raw_text # Fallback
+            
+        return cleaned_text
         
     except Exception as e:
-        print(f"Groq API Error: {e}")
+        print(f"API Error: {e}")
         # Safe fallback so the server doesn't crash
         return json.dumps({
             "incident_title": "AI Engine Error",
             "severity": "UNKNOWN",
             "mitre_attack_technique": "N/A",
             "explanation": f"Failed to reach AI. Error: {str(e)}",
-            "remediation_steps": "Check Groq API key and connection."
+            "remediation_steps": "Check API key and connection."
         })
