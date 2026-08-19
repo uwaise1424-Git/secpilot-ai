@@ -1,0 +1,4 @@
+2026-06-06 10:14:22 [INFO] HTTP GET /login.php - Client IP: 192.168.1.55 - User-Agent: Mozilla/5.0
+2026-06-06 10:14:45 [WARNING] HTTP POST /login.php - Client IP: 192.168.1.55 - Payload submitted in 'username' field: admin' OR '1'='1 -- - Status: 200 OK - Response size: 1420 bytes
+2026-06-06 10:14:46 [ALERT] Database query executed: SELECT * FROM users WHERE username = 'admin' OR '1'='1 -- ' AND password = ''
+2026-06-06 10:14:46 [CRITICAL] Authentication bypass successful for user ID 1 (Administrator privileges granted).

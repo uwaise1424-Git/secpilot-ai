@@ -1,0 +1,7 @@
+2026-06-06 11:02:10 [INFO] Firewall packet filter initiated.
+2026-06-06 11:02:11 [WARNING] TCP SYN scan detected from external source IP: 45.33.32.156 targeting host 10.0.0.15
+2026-06-06 11:02:11 [WARNING] Port probe sequence logged: TCP port 22 (SSH) - SYN Sent
+2026-06-06 11:02:12 [WARNING] Port probe sequence logged: TCP port 80 (HTTP) - SYN Sent
+2026-06-06 11:02:12 [WARNING] Port probe sequence logged: TCP port 443 (HTTPS) - SYN Sent
+2026-06-06 11:02:13 [WARNING] Port probe sequence logged: TCP port 3306 (MySQL) - SYN Sent
+2026-06-06 11:02:15 [ALERT] High rate of connection probes detected from IP 45.33.32.156 within a 5-second window. Threat classified as Network Reconnaissance.
