@@ -1,5 +1,6 @@
 import os
 import json
+import time
 from groq import Groq
 from dotenv import load_dotenv
 
@@ -29,36 +30,44 @@ def analyze_threats_with_ai(log_data):
     }
     """
 
-    try:
-        response = client.chat.completions.create(
-            model="openai/gpt-oss-20b",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Analyze these raw logs:\n{log_data}"}
-            ],
-            temperature=0.2
-        )
-        
-        raw_text = response.choices[0].message.content
-        
-        # 🚨 THE SMART EXTRACTOR
-        start_idx = raw_text.find('{')
-        end_idx = raw_text.rfind('}')
-        
-        if start_idx != -1 and end_idx != -1:
-            cleaned_text = raw_text[start_idx:end_idx+1]
-        else:
-            cleaned_text = raw_text # Fallback
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = client.chat.completions.create(
+                model="openai/gpt-oss-20b",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Analyze these raw logs:\n{log_data}"}
+                ],
+                temperature=0.2
+            )
             
-        return cleaned_text
-        
-    except Exception as e:
-        print(f"API Error: {e}")
-        # Safe fallback so the server doesn't crash
-        return json.dumps({
-            "incident_title": "AI Engine Error",
-            "severity": "UNKNOWN",
-            "mitre_attack_technique": "N/A",
-            "explanation": f"Failed to reach AI. Error: {str(e)}",
-            "remediation_steps": "Check API key and connection."
-        })
+            raw_text = response.choices[0].message.content
+            
+            # 🚨 THE SMART EXTRACTOR
+            start_idx = raw_text.find('{')
+            end_idx = raw_text.rfind('}')
+            
+            if start_idx != -1 and end_idx != -1:
+                cleaned_text = raw_text[start_idx:end_idx+1]
+            else:
+                cleaned_text = raw_text # Fallback
+                
+            # Validate that it's actually parseable JSON before returning
+            json.loads(cleaned_text)
+            return cleaned_text
+            
+        except Exception as e:
+            print(f"Attempt {attempt + 1} failed: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(1) # Wait 1 second before retrying
+                continue
+            else:
+                # Only fallback if all retries fail
+                return json.dumps({
+                    "incident_title": "AI Engine Error",
+                    "severity": "UNKNOWN",
+                    "mitre_attack_technique": "N/A",
+                    "explanation": f"Failed after {max_retries} attempts. Error: {str(e)}",
+                    "remediation_steps": "Check API key and connection."
+                })
